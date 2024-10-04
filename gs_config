@@ -1,0 +1,12 @@
+[First Tag]
+""    "Run GS after closing a game" "|" "on|off" "on" "touch /mnt/SDCARD/.tmp_update/flags/gs.fix|rm -f /mnt/SDCARD/.tmp_update/flags/gs.fix"
+""    "Always show game box art" "|" "on|off" "on" "touch /mnt/SDCARD/.tmp_update/flags/gs.boxart|rm -f /mnt/SDCARD/.tmp_update/flags/gs.boxart"
+"-s"  "Image scrolling speed" "30|20|10" "slow|normal|fast" "fast"
+"-b"  "Swap left/right buttons" "on|off" "on|off" "off"
+[Second Tag]
+"-m"  "Display title in multiple lines" "on|off" "on|off" "off"
+"-t"  "Display title at start" "on|off" "on|off" "on"
+"-ts" "Title scrolling speed" "2|4|8" "slow|normal|fast" "normal"
+[Last Tag]
+"-n"  "Display item index" "on|off" "on|off" "on"
+"-d"  "Enable item deletion" "on|off" "on|off" "on"
