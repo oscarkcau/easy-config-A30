@@ -66,6 +66,11 @@ namespace {
 		}).base(), s.end());
 	}
 
+	double easeInOutQuart(double x)
+	{
+		return x < 0.5 ? 8 * x * x * x * x : 1 - pow(-2 * x + 2, 4) / 2;
+	}
+
     void printUsage()
     {
 		cout << endl
@@ -408,7 +413,7 @@ namespace {
         );
     }
 
-    void renderAllSettings()
+    void renderAllSettings(int offsetX=0, bool isShowHighlight=true, bool isShowInstruction=true)
     {
         int marginTop = 60;
         int marginLeft = 20;
@@ -418,7 +423,7 @@ namespace {
 
         // render title and instruction
         if (isShowTitle) titleTexture->render(0, 10);
-        instructionTexture->render();
+        if (isShowInstruction) instructionTexture->render();
 
         // render current group name
         if (settingGroups.size() > 1) {
@@ -451,7 +456,7 @@ namespace {
             if (offsetY + rowHeight > global::SCREEN_WIDTH) break;
 
             // render background if it is selected
-            if (index == selectedItemIndex)
+            if (index == selectedItemIndex && isShowHighlight)
             {
                 auto rect = overlay_bg_render_rect;
                 rect.x += offsetY - fontSize / 4;
@@ -459,32 +464,70 @@ namespace {
             }
 
             // render setting description
-            item->renderDescription(marginLeft, offsetY);
+            item->renderDescription(offsetX + marginLeft, offsetY);
 
             // render setting value
             if (item->isOnOffSetting())
             {
-                int offsetX = global::SCREEN_HEIGHT - marginRight;
-                offsetX -= nextTexture->getWidth() + valueSpece;
-                offsetX -= toggleOnTexture->getWidth();
+                int x = offsetX + global::SCREEN_HEIGHT - marginRight;
+                x -= nextTexture->getWidth() + valueSpece;
+                x -= toggleOnTexture->getWidth();
                 if (item->getSelectedIndex() == 0)
-                    toggleOnTexture->render(offsetX, offsetY);
+                    toggleOnTexture->render(x, offsetY);
                 else
-                    toggleOffTexture->render(offsetX, offsetY);
+                    toggleOffTexture->render(x, offsetY);
             }
             else
             {
-                int offsetX = global::SCREEN_HEIGHT - marginRight - nextTexture->getWidth();
-                if (index == selectedItemIndex) nextTexture->render(offsetX, offsetY);
-                offsetX -= valueSpece + item->getValueTexture()->getWidth();
-                item->renderValue(offsetX, offsetY);
-                offsetX -= valueSpece + prevTexture->getWidth();
-                if (index == selectedItemIndex) prevTexture->render(offsetX, offsetY);
+                int x = offsetX + global::SCREEN_HEIGHT - marginRight - nextTexture->getWidth();
+                if (index == selectedItemIndex) nextTexture->render(x, offsetY);
+                x -= valueSpece + item->getValueTexture()->getWidth();
+                item->renderValue(x, offsetY);
+                x -= valueSpece + prevTexture->getWidth();
+                if (index == selectedItemIndex) prevTexture->render(x, offsetY);
             }
 
             // update offset and index
             offsetY += rowHeight;
             index++;
+        }
+    }
+
+    void ScrollLeft() {
+        double step = 1;
+        while (step > 0) {
+            // render setting items
+            double easing = easeInOutQuart(step); 
+            int offsetX = static_cast<int>(-global::SCREEN_HEIGHT * easing);
+            renderAllSettings(offsetX, false);
+
+            selectedGroupIndex++;
+            renderAllSettings(offsetX + global::SCREEN_HEIGHT, false, false);
+            selectedGroupIndex--;
+
+            SDL_RenderPresent(global::renderer);
+            SDL_Delay(30);
+
+            step -= 1.0 / 15;
+        }
+    }
+
+    void ScrollRight() {
+        double step = 1;
+        while (step > 0) {
+            // render setting items
+            double easing = easeInOutQuart(step); 
+            int offsetX = static_cast<int>(global::SCREEN_HEIGHT * easing);
+            renderAllSettings(offsetX, false);
+
+            selectedGroupIndex--;
+            renderAllSettings(offsetX - global::SCREEN_HEIGHT, false, false);
+            selectedGroupIndex++;
+
+            SDL_RenderPresent(global::renderer);
+            SDL_Delay(30);
+
+            step -= 1.0 / 15;
         }
     }
 
@@ -530,6 +573,7 @@ namespace {
                 selectedItemIndex = 0;
                 topItemIndex = 0;
                 updateGroupNameTexture();
+                ScrollLeft();
             }
             break;
 		// button R1 (Backspace key)
@@ -540,6 +584,7 @@ namespace {
                 selectedItemIndex = 0;
                 topItemIndex = 0;
                 updateGroupNameTexture();
+                ScrollRight();
             }
 			break;
 		}
@@ -613,7 +658,7 @@ int main(int argc, char *argv[])
 			}
 		}
 
-        // render option items
+        // render setting items
         renderAllSettings();
         SDL_RenderPresent(global::renderer);
 
