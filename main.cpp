@@ -3,6 +3,7 @@
 #include <sstream>
 #include <algorithm>
 #include <iomanip>
+#include <stdexcept>
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -19,6 +20,8 @@ using std::string;
 using std::cout;
 using std::cerr;
 using std::endl;
+using std::istream;
+using std::ostream;
 using std::ifstream;
 using std::ofstream;
 using std::istringstream;
@@ -29,7 +32,6 @@ using std::vector;
 // global variables used in main.cpp
 string programName;
 string configFileName;
-string optionsFileName;
 int fontSize = 28;
 vector<SettingGroup*> settingGroups = { new SettingGroup("Default") };
 int topItemIndex = 0;
@@ -52,6 +54,63 @@ ImageTexture* toggleOffTexture = nullptr;
 bool isShowTitle = false;
 
 namespace {
+    class BracketedString {
+    public:
+        BracketedString(string &s) : str(s), const_str(s) {};
+        BracketedString(const string &s) : const_str(s) {};
+
+        friend istream & operator>>(istream &is, BracketedString bs) {
+            if (&bs.str == &BracketedString::dummy) 
+                throw std::invalid_argument("not lvalue");
+            
+            // if not start with open bracket, treat as usual input case
+            char ch;
+            is >> ch;
+            if (ch != '[') { is.putback(ch); return is >> bs.str; }
+
+            is >> std::noskipws; // disable skipping white space
+            bs.str.clear(); // clear output string first
+
+            // read characters until close bracket is found
+            ostringstream oss;
+            bool isEscaped = false;
+            while (is >> ch) {
+                if (isEscaped) { isEscaped = false; oss << ch; continue; }
+                if (ch == '\\') { isEscaped = true; continue; }
+                if (ch == ']') break;
+                oss << ch;
+            }
+            bs.str = oss.str();
+
+            return is >> std::skipws; // enable skipping white space and return
+        }
+
+        friend ostream & operator<<(ostream &os, BracketedString bs) {
+            os << '[';
+            for(const char& ch : bs.const_str) { 
+                if (ch == ']') os << '\\'; 
+                os << ch; 
+            } 
+            os << ']';
+            return os;
+        }
+
+    private:
+        static string dummy;
+        string &str = dummy;
+        const string &const_str;
+    };
+
+    string BracketedString::dummy;
+
+    BracketedString bracketed(string & s) {
+        return BracketedString(s);
+    }
+
+    BracketedString bracketed(const string & s) {
+        return BracketedString(s);
+    }
+
 	// trim from start (in place)
 	inline void ltrim(std::string &s) {
 		s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
@@ -66,6 +125,8 @@ namespace {
 		}).base(), s.end());
 	}
 
+    // istream & operator>>(istream &is, string& s)
+
 	double easeInOutQuart(double x)
 	{
 		return x < 0.5 ? 8 * x * x * x * x : 1 - pow(-2 * x + 2, 4) / 2;
@@ -74,14 +135,13 @@ namespace {
     void printUsage()
     {
 		cout << endl
-			 << "Usage: easyConfig config_file [-t title] [-o options_file]" << endl
+			 << "Usage: easyConfig config_file [-t title]" << endl
 			 << endl
 			 << "-t:\ttitle of the config window." << endl
-			 << "-o:\toutput options file, contains single line of options generated from config file." << endl
 			 << "-h,--help\tshow this help message." << endl
              << endl
 			 << endl
-			 << "UI control: Up/Down: Select item, Left/Right: change value, B: Exit" << endl
+			 << "UI control: L1/R1: Select group, Up/Down: Select item, Left/Right: change value, B: Exit" << endl
              << endl
              << "The config file should contains lines of config settings, in the following format:" << endl
              << "\"NAME\" \"DESCRIPTION\" \"POSSIBLE_VALUES\" \"DISPLAY_VALUES\" \"CURRENT_VALUE\" [\"COMMANDS\"]" << endl
@@ -99,13 +159,19 @@ namespace {
              << "\"-s\" \"Text scrolling speed\" \"10|20|30\" \"Slow|Normal|Fast\" \"Fast\"" << endl
              << "\"-t\" \"Display title at start\" \"on|off\" \"on|off\" \"on\"" << endl
              << endl
-             << "Config file is updated when program exit." << endl
-             << endl
+             << "settings can be organized into groups, which displayed as multiple tags in config window. "
+             << "To define a group use insert line with the following format:" << endl
+             << endl;
+             << "[GROUP_NAME] [OPTIONAL_OUTPUT_FILENAME]"
+             << endl;
+             << "Note that the square brackets are part of input. Any setting items after the group definition will be assigned to the group. "
+             << "OPTIONAL_OUTPUT_FILENAME is the filename of optional output file. "
              << "Output option file is generated when program exit, which containing pairs of NAME and VALUE, can be utilized as option list for calling another program. "
-             << "Example output option file:" << endl
+             << "Example output options:" << endl
              << endl
              << "-s 10 -b off -t on -ts 4 -n on" << endl
 			 << endl;
+             << "Config file is updated with new values when program exit." << endl
     }
 
     void printErrorAndExit(string message, string extraMessage = "")
@@ -152,13 +218,6 @@ namespace {
                 isShowTitle = true;
                 i += 2;
             }
-            else if (strcmp(option, "-o") == 0)
-            {
-				if (i == argc - 1)
-					printErrorUsageAndExit("-o: Missing option value");
-                optionsFileName = argv[i+1];
-                i += 2;
-            }
 			else if (strcmp(option, "-h") == 0 || strcmp(option, "--help") == 0)
 			{
 				printUsage();
@@ -175,75 +234,73 @@ namespace {
 		ifstream file;
 		file.open(filename);
 
-		if (file.is_open())
-		{
-			// iterate all input line
-			string line;
-			while (std::getline(file, line))
-			{
-				// trim input line
-				rtrim(line);
-				ltrim(line);
+		if (!file.is_open()) printErrorAndExit("cannot open file: ", filename);
 
-				// skip empty line
-				if (line.empty()) continue;
+        // iterate all input line
+        string line;
+        while (std::getline(file, line))
+        {
+            // trim input line
+            rtrim(line);
+            ltrim(line);
 
-                // skip line start with '#'
-                if (line.front() == '#') continue;
+            // skip empty line
+            if (line.empty()) continue;
 
-                // try read line as setting group
-                if (line.front() == '[' && line.back() == ']')
-                {
-                    // get group name
-                    string groupName = line.substr(1, line.size()-2);
-                    // add new group
-                    settingGroups.push_back(new SettingGroup(groupName));
-                    continue;
-                }
+            // skip line start with '#'
+            if (line.front() == '#') continue;
 
-                // process line with string stream
-                // try read line as setting item
-                string id, description, options, displayValues, selectedValue, commands;
+            // try read line as setting group
+            if (line.front() == '[') {
                 istringstream iss(line);
-                if (! (iss >> quoted(id) 
-                    >> quoted(description) 
-                    >> quoted(options)
-                    >> quoted(displayValues)
-                    >> quoted(selectedValue)))
-                {
+                string groupName, outputFilename;
+
+                // read group name
+                if (! (iss >> bracketed(groupName))) 
                     printErrorAndExit("cannot process line: ", line);
-                }
 
-                // try read commands, set comands to empty string if failed
-                if (! (iss >> quoted(commands)))
-                {
-                    commands = "";
-                }
+                // try read output filename
+                iss >> bracketed(outputFilename);
 
-                // create setting item
-                auto item = new SettingItem(
-                    id, 
-                    description, 
-                    options,
-                    displayValues, 
-                    selectedValue,
-                    commands
-                );
+                // create group item
+                settingGroups.push_back(new SettingGroup(groupName, outputFilename));
 
-                if (item->IsInitOK() == false) {
-                    printErrorAndExit(item->getErrorMessage() + ": ", line);
-                }
-
-                // add item to recent created group
-                settingGroups.back()->getItems().push_back(item);
-                
-                cout << line << endl;
+                continue;
             }
+
+            // process line with string stream
+            // try read line as setting item
+            string id, description, options, displayValues, selectedValue, commands;
+            istringstream iss(line);
+            if (! (iss >> quoted(id) 
+                >> quoted(description) 
+                >> quoted(options)
+                >> quoted(displayValues)
+                >> quoted(selectedValue)))
+            {
+                printErrorAndExit("cannot process line: ", line);
+            }
+
+            // try read commands
+            iss >> quoted(commands);
+
+            // create setting item
+            auto item = new SettingItem(
+                id, 
+                description, 
+                options,
+                displayValues, 
+                selectedValue,
+                commands
+            );
+
+            if (item->IsInitOK() == false) {
+                printErrorAndExit(item->getErrorMessage() + ": ", line);
+            }
+
+            // add item to recent created group
+            settingGroups.back()->getItems().push_back(item);
         }
-        else
-		{
-			printErrorAndExit("cannot open file: ", filename);
-		}
 
 		// close file
 		file.close();
@@ -253,18 +310,9 @@ namespace {
         {
             settingGroups.erase(settingGroups.begin());
         }
-        /*
-        settingGroups.erase(
-            std::remove_if(
-                settingGroups.begin(),
-                settingGroups.end(),
-                [](const SettingGroup & g) { return g.getSize(); }
-                )
-            );
-        */
     }
 
-    void saveConfigFile(const char *filename) {
+    void saveConfigFile(const string &filename) {
 		// open file
 		ofstream file;
 		file.open(filename);
@@ -275,16 +323,20 @@ namespace {
         // write all settings to file
         for (auto &group : settingGroups)
         {
-            file << '[' << group->getName() << ']' << endl;
+            file << bracketed(group->getName());
+            if (!group->getOutputFilename().empty())
+               file << ' ' << bracketed(group->getOutputFilename());
+            file << endl;
             for (auto &item : group->getItems())
             {
-                file << quoted(item->getID()) << " "
-                    << quoted(item->getDescription()) << " "
-                    << quoted(item->getOptionsString()) << " "
-                    << quoted(item->getDisplayValuesString_()) << " "
-                    << quoted(item->getSelectedValue()) << " "
-                    << quoted(item->getCommandsString()) << endl;
-
+                file << quoted(item->getID()) << ' '
+                    << quoted(item->getDescription()) << ' '
+                    << quoted(item->getOptionsString()) << ' '
+                    << quoted(item->getDisplayValuesString_()) << ' '
+                    << quoted(item->getSelectedValue());
+                if (!item->getCommandsString().empty())
+                    file << ' ' << quoted(item->getCommandsString());
+                file << endl;
             }
         }
 
@@ -292,29 +344,35 @@ namespace {
 		file.close();
     }
 
-    void saveOptionsFile(const char *filename)
+    void saveOptionsFile()
     {
-		// open file
-		ofstream file;
-		file.open(filename);
-
-        // exit if file cannot open
-        if (!file.is_open()) printErrorAndExit("cannot open file: ", filename);
-
         // write all settings to file
         for (auto &group : settingGroups)
         {
+            // get filename, skip this group if empty
+            auto filename = group->getOutputFilename();
+            if (filename.empty()) continue;
+
+            // open file
+            ofstream file;
+            file.open(filename);
+
+            // skip this group if file cannot open
+            if (!file.is_open()) { 
+                cerr << "cannot open file: " << filename << endl;
+                continue;
+            }
+
             for (auto &item : group->getItems())
             {
                 auto options = item->getOptions();
                 file << item->getID() << ' ' << options[item->getSelectedIndex()];
-                //if (item != group.getItems().back()) 
-                    file << ' ';
+                if (item != group->getItems().back()) file << ' ';
             }
-        }
 
-		// close file
-		file.close();
+            // close file
+            file.close();
+        }
     }
 
     void updateGroupNameTexture()
@@ -592,8 +650,8 @@ namespace {
 		// button B (Left control key)
 		if (event.key.keysym.mod == KMOD_LCTRL)
 		{
-            if (!configFileName.empty()) saveConfigFile(configFileName.c_str());
-            if (!optionsFileName.empty()) saveOptionsFile(optionsFileName.c_str());
+            if (!configFileName.empty()) saveConfigFile(configFileName);
+            saveOptionsFile();
             exit(0);
 		}
 	}
