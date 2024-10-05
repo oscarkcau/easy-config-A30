@@ -162,7 +162,7 @@ namespace {
              << "settings can be organized into groups, which displayed as multiple tags in config window. "
              << "To define a group use insert line with the following format:" << endl
              << endl
-             << "[GROUP_NAME] [OPTIONAL_OUTPUT_FILENAME]"
+             << "[GROUP_NAME] [OPTIONAL_OUTPUT_FILENAME]" << endl
              << endl
              << "Note that the square brackets are part of input. Any setting items after the group definition will be assigned to the group. "
              << "OPTIONAL_OUTPUT_FILENAME is the filename of optional output file. "
