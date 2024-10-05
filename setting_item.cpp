@@ -63,7 +63,7 @@ SettingItem::SettingItem(
         return;
     }
 
-    selectedIndex_ = static_cast<unsigned int>(index);
+    oldSelectedIndex_ = selectedIndex_ = static_cast<unsigned int>(index);
 
     descriptionTexture_ = new TextTexture(
         description_, 
@@ -102,11 +102,6 @@ void SettingItem::selectPreviousValue()
     selectedValue_ = displayValues_[selectedIndex_];
 
     createValueTexture();
-
-    if (commands_.size() > 0)
-    {
-        system(commands_[selectedIndex_].c_str());
-    }
 }
 
 void SettingItem::selectNextValue()
@@ -117,11 +112,6 @@ void SettingItem::selectNextValue()
     selectedValue_ = displayValues_[selectedIndex_];
 
     createValueTexture();
-
-    if (commands_.size() > 0)
-    {
-        system(commands_[selectedIndex_].c_str());
-    }
 }
 
 bool SettingItem::isOnOffSetting() const 

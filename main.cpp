@@ -151,7 +151,7 @@ namespace {
              << "POSSIBLE_VALUES: possible values of setting." << endl
              << "DISPLAY_VALUES: corresponding display texts of possible values shown in config window." << endl
              << "CURRENT_VALUES: current value of setting, should be one of the display values." << endl
-             << "COMMANDS: optional commands to be executed after the setting value is updated." << endl
+             << "COMMANDS: optional commands to be executed on exit if the setting value is changed." << endl
              << endl
              << "POSSIBLE_VALUES, DISPLAY_VALUES and COMMANDS are values seperated by '|'. "
              << "Example lines of config file:" << endl
@@ -161,17 +161,17 @@ namespace {
              << endl
              << "settings can be organized into groups, which displayed as multiple tags in config window. "
              << "To define a group use insert line with the following format:" << endl
-             << endl;
+             << endl
              << "[GROUP_NAME] [OPTIONAL_OUTPUT_FILENAME]"
-             << endl;
+             << endl
              << "Note that the square brackets are part of input. Any setting items after the group definition will be assigned to the group. "
              << "OPTIONAL_OUTPUT_FILENAME is the filename of optional output file. "
              << "Output option file is generated when program exit, which containing pairs of NAME and VALUE, can be utilized as option list for calling another program. "
              << "Example output options:" << endl
              << endl
              << "-s 10 -b off -t on -ts 4 -n on" << endl
-			 << endl;
-             << "Config file is updated with new values when program exit." << endl
+			 << endl
+             << "Config file is updated with new values when program exit." << endl;
     }
 
     void printErrorAndExit(string message, string extraMessage = "")
@@ -270,7 +270,7 @@ namespace {
 
             // process line with string stream
             // try read line as setting item
-            string id, description, options, displayValues, selectedValue, commands;
+            string id, description, options, displayValues, selectedValue;
             istringstream iss(line);
             if (! (iss >> quoted(id) 
                 >> quoted(description) 
@@ -282,6 +282,7 @@ namespace {
             }
 
             // try read commands
+            string commands;
             iss >> quoted(commands);
 
             // create setting item
@@ -365,13 +366,31 @@ namespace {
 
             for (auto &item : group->getItems())
             {
-                auto options = item->getOptions();
-                file << item->getID() << ' ' << options[item->getSelectedIndex()];
+                auto id = item->getID();
+                auto opt = item->getOptions()[item->getSelectedIndex()];
+                if (id.empty() && opt.empty()) continue;
+                file << id << ' ' << opt;
                 if (item != group->getItems().back()) file << ' ';
             }
 
             // close file
             file.close();
+        }
+    }
+
+    void runCommands() {
+        for (auto &group : settingGroups)
+        {
+            for (auto &item : group->getItems())
+            {   
+                auto commands = item->getCommands();
+                auto index = item->getSelectedIndex();
+
+                if (commands.size() == 0) continue;
+                if (index == item->getOldSelectedIndex()) continue;
+
+                system(commands[index].c_str());
+            }
         }
     }
 
@@ -477,7 +496,7 @@ namespace {
         int marginLeft = 20;
         int marginRight = 20;
         int valueSpece = 50;
-        int rowHeight = fontSize * 2;
+        int rowHeight = fontSize * 2 + 2;
 
         // render title and instruction
         if (isShowTitle) titleTexture->render(0, 10);
@@ -486,6 +505,7 @@ namespace {
         // render current group name
         if (settingGroups.size() > 1) {
             if (!isShowTitle) {
+                marginTop += 10;
                 groupNameTexture->render(0, 10);
                 buttonLTexture->render(0, 10);
                 buttonRTexture->render(0, 10);
@@ -502,7 +522,7 @@ namespace {
 
         // adjust top item to display
         if (totalHeight < marginTop) topItemIndex--;
-        if (totalHeight + rowHeight > global::SCREEN_WIDTH) topItemIndex++;
+        if (totalHeight + rowHeight * 2 > global::SCREEN_WIDTH) topItemIndex++;
 
         int index = 0;
         auto group = settingGroups[selectedGroupIndex];
@@ -511,7 +531,7 @@ namespace {
         {
             // skip items that are outside screen
             if (index < topItemIndex) { index++; continue; };
-            if (offsetY + rowHeight > global::SCREEN_WIDTH) break;
+            if (offsetY + rowHeight * 2 > global::SCREEN_WIDTH) break;
 
             // render background if it is selected
             if (index == selectedItemIndex && isShowHighlight)
@@ -528,7 +548,7 @@ namespace {
             if (item->isOnOffSetting())
             {
                 int x = offsetX + global::SCREEN_HEIGHT - marginRight;
-                x -= nextTexture->getWidth() + valueSpece;
+                //x -= nextTexture->getWidth() + valueSpece;
                 x -= toggleOnTexture->getWidth();
                 if (item->getSelectedIndex() == 0)
                     toggleOnTexture->render(x, offsetY);
@@ -537,12 +557,18 @@ namespace {
             }
             else
             {
-                int x = offsetX + global::SCREEN_HEIGHT - marginRight - nextTexture->getWidth();
-                if (index == selectedItemIndex) nextTexture->render(x, offsetY);
-                x -= valueSpece + item->getValueTexture()->getWidth();
+                int x = offsetX + global::SCREEN_HEIGHT - marginRight;
+                if (index == selectedItemIndex) {
+                    x -= nextTexture->getWidth();
+                    nextTexture->render(x, offsetY);
+                    x -= valueSpece;
+                }
+                x -= item->getValueTexture()->getWidth();
                 item->renderValue(x, offsetY);
-                x -= valueSpece + prevTexture->getWidth();
-                if (index == selectedItemIndex) prevTexture->render(x, offsetY);
+                if (index == selectedItemIndex) {
+                    x -= valueSpece + prevTexture->getWidth();
+                    prevTexture->render(x, offsetY);
+                }
             }
 
             // update offset and index
@@ -650,8 +676,9 @@ namespace {
 		// button B (Left control key)
 		if (event.key.keysym.mod == KMOD_LCTRL)
 		{
-            if (!configFileName.empty()) saveConfigFile(configFileName);
+            saveConfigFile(configFileName);
             saveOptionsFile();
+            runCommands();
             exit(0);
 		}
 	}

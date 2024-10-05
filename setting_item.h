@@ -38,6 +38,7 @@ public:
     vector<string> getCommands() const { return commands_; }
     void setCommands(vector<string> &c) { commands_ = c; }
     unsigned int getSelectedIndex() const { return selectedIndex_; }
+    unsigned int getOldSelectedIndex() const { return oldSelectedIndex_; }
     bool IsInitOK() const { return isInitOK_; }
     string getErrorMessage() const { return errorMessage_; }
     TextTexture* getDescriptionTexture() const { return descriptionTexture_; }
@@ -47,7 +48,7 @@ private:
     vector<string> options_;
     vector<string> displayValues_;
     vector<string> commands_;
-    unsigned int selectedIndex_;
+    unsigned int selectedIndex_, oldSelectedIndex_;
     bool isInitOK_ = false;
     string errorMessage_;
     TextTexture* descriptionTexture_;
