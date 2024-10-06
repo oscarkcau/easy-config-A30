@@ -13,12 +13,12 @@ class SettingItem
 {
 public:
     explicit SettingItem(
-        string id, 
-        string description, 
-        string optionsString,
-        string displayValuesString,
-        string selectedValue,
-        string commandsString
+        const string & id, 
+        const string & description, 
+        const string & optionsString,
+        const string & displayValuesString,
+        const string & selectedValue,
+        const string & commandsString
         );
 
     void renderDescription(int offsetX, int offsetY) const;
@@ -27,24 +27,28 @@ public:
     void selectNextValue();
     bool isOnOffSetting() const;
 
-    string getID() const { return id_; }
-    string getDescription() const { return description_; }
-    string getOptionsString() const { return optionsString_; }
-    string getDisplayValuesString_() const { return displayValuesString_; }
-    string getSelectedValue() const { return selectedValue_; }
-    string getCommandsString() const { return commandsString_; }
-    vector<string> getOptions() const { return options_; }
-    vector<string> getDisplayValues() const { return displayValues_; }
-    vector<string> getCommands() const { return commands_; }
-    void setCommands(vector<string> &c) { commands_ = c; }
+    const string & getID() const { return id_; }
+    const string & getDescription() const { return description_; }
+    const string & getOptionsString() const { return optionsString_; }
+    const string & getDisplayValuesString_() const { return displayValuesString_; }
+    const string & getSelectedValue() const { return selectedValue_; }
+    const string & getCommandsString() const { return commandsString_; }
+    const vector<string> & getOptions() const { return options_; }
+    const vector<string> & getDisplayValues() const { return displayValues_; }
+    const vector<string> & getCommands() const { return commands_; }
     unsigned int getSelectedIndex() const { return selectedIndex_; }
     unsigned int getOldSelectedIndex() const { return oldSelectedIndex_; }
     bool IsInitOK() const { return isInitOK_; }
-    string getErrorMessage() const { return errorMessage_; }
+    const string & getErrorMessage() const { return errorMessage_; }
     TextTexture* getDescriptionTexture() const { return descriptionTexture_; }
     TextTexture* getValueTexture() const { return valueTexture_; }
 private:
-    string id_, description_, optionsString_, displayValuesString_, selectedValue_, commandsString_;
+    const string id_;
+    const string description_;
+    const string optionsString_;
+    const string displayValuesString_;
+    string selectedValue_;
+    const string commandsString_;
     vector<string> options_;
     vector<string> displayValues_;
     vector<string> commands_;

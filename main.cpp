@@ -17,15 +17,10 @@
 #include "text_texture.h"
 
 using std::string;
-using std::cout;
-using std::cerr;
-using std::endl;
-using std::istream;
-using std::ostream;
-using std::ifstream;
-using std::ofstream;
-using std::istringstream;
-using std::ostringstream;
+using std::cout, std::cerr, std::endl;
+using std::istream, std::ostream, std::getline;
+using std::ifstream, std::ofstream;
+using std::istringstream, std::ostringstream;
 using std::quoted;
 using std::vector;
 
@@ -112,14 +107,14 @@ namespace {
     }
 
 	// trim from start (in place)
-	inline void ltrim(std::string &s) {
+	inline void ltrim(string &s) {
 		s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
 			return !std::isspace(ch);
 		}));
 	}
 
 	// trim from end (in place)
-	inline void rtrim(std::string &s) {
+	inline void rtrim(string &s) {
 		s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
 			return !std::isspace(ch);
 		}).base(), s.end());
@@ -238,7 +233,7 @@ namespace {
 
         // iterate all input line
         string line;
-        while (std::getline(file, line))
+        while (getline(file, line))
         {
             // trim input line
             rtrim(line);

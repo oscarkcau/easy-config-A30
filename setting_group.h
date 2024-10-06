@@ -11,16 +11,16 @@ using std::vector;
 
 class SettingGroup {
 public:
-    SettingGroup(string name, string outputFilename = "") 
+    SettingGroup(const string & name, const string & outputFilename = "") 
         : name_(name), outputFilename_(outputFilename) {}
 
-    string getName() const { return name_; }
-    string getOutputFilename() const { return outputFilename_; }
+    const string & getName() const { return name_; }
+    const string & getOutputFilename() const { return outputFilename_; }
     vector<SettingItem*> & getItems() { return items_; }
     unsigned int getSize() const { return items_.size(); }
 
 private:
-    string name_, outputFilename_;
+    const string name_, outputFilename_;
     vector<SettingItem*> items_;
 };
 

@@ -7,12 +7,14 @@
 
 #include "texture_base.h"
 
+using std::string;
+
 class TextTexture: public TextureBase
 {
 public:
-    explicit TextTexture(std::string text, TTF_Font *font, SDL_Color color, 
+    explicit TextTexture(const string & text, TTF_Font *font, SDL_Color color, 
         TextureAlignment alignment = TextureAlignment::topLeft);
-    explicit TextTexture(std::string text, TTF_Font *font, SDL_Color color, 
+    explicit TextTexture(const string & text, TTF_Font *font, SDL_Color color, 
         TextureAlignment alignment, unsigned int wrapLength);
     virtual ~TextTexture() = default;
 
@@ -20,11 +22,11 @@ public:
     TextTexture(const TextTexture &) = delete;
     TextTexture &operator=(const TextTexture &) = delete;
 
-    std::string getText() const { return text_; }
+    const string & getText() const { return text_; }
 
 private:
 
-    std::string text_;
+    const string text_;
 };
 
 #endif // TEXT_TEXTURE_H

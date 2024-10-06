@@ -4,21 +4,23 @@
 #include <string>
 #include <vector>
 
+using std::string;
+
 namespace File_utils
 {
     // File utilities
 
-    bool fileExists(const std::string &p_path);
+    bool fileExists(const string &p_path);
 
-    std::string getLowercaseFileExtension(const std::string &name);
+    string getLowercaseFileExtension(const string &name);
 
-    std::string getFileName(const std::string &p_path);
+    string getFileName(const string &p_path);
 
-    std::string getShortFileName(const std::string &p_path);
+    string getShortFileName(const string &p_path);
 
-    std::string getPath(const std::string &p_path);
+    string getPath(const string &p_path);
 
-    std::string getCWP();
+    string getCWP();
 }
 
 #endif

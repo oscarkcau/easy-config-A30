@@ -3,7 +3,7 @@
 #include <SDL.h>
 #include <SDL_image.h>
 
-TextTexture::TextTexture(std::string text, TTF_Font *font, SDL_Color color, 
+TextTexture::TextTexture(const string & text, TTF_Font *font, SDL_Color color, 
     TextureAlignment alignment)
     : text_(text)
 {
@@ -20,7 +20,7 @@ TextTexture::TextTexture(std::string text, TTF_Font *font, SDL_Color color,
 	SDL_FreeSurface(surface);
 } 
 
-TextTexture::TextTexture(std::string text, TTF_Font *font, SDL_Color color, 
+TextTexture::TextTexture(const string & text, TTF_Font *font, SDL_Color color, 
     TextureAlignment alignment, unsigned int wrapLength)
     : text_(text)
 {

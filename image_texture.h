@@ -7,11 +7,13 @@
 
 #include "texture_base.h"
 
+using std::string;
+
 class ImageTexture: public TextureBase
 {
 public:
     explicit ImageTexture(
-        std::string filename, 
+        const string & filename, 
         TextureAlignment alignment = TextureAlignment::topLeft
     );
     virtual ~ImageTexture() = default;
@@ -20,11 +22,11 @@ public:
     ImageTexture(const ImageTexture &) = delete;
     ImageTexture &operator=(const ImageTexture &) = delete;
 
-    std::string getFilename() const { return filename_; }
+    const string & getFilename() const { return filename_; }
 
 private:
 
-    std::string filename_;
+    const string filename_;
 };
 
 #endif // IMAGE_TEXTURE_H

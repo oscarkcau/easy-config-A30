@@ -6,6 +6,8 @@
 
 #include "global.h"
 
+using std::cerr, std::endl;
+
 TextureBase::TextureBase(SDL_Surface *surface, TextureAlignment alignment)
 {
     init(surface, alignment);
@@ -33,7 +35,7 @@ void TextureBase::createTexture(SDL_Surface *surface) {
             surface)
     };
     if (texture_ == nullptr)
-        std::cerr << ("Texture creation failed") << std::endl;
+        cerr << ("Texture creation failed") << endl;
 }
 
 

@@ -8,12 +8,12 @@
 
 namespace {
     // split string with delimiter into vector of tokens
-    vector<std::string> split(const string& s, const string& delimiter) {
+    vector<string> split(const string& s, const string& delimiter) {
         string copy_s = s;
-        vector<std::string> tokens;
+        vector<string> tokens;
         size_t pos = 0;
         string token;
-        while ((pos = copy_s.find(delimiter)) != std::string::npos) {
+        while ((pos = copy_s.find(delimiter)) != string::npos) {
             token = copy_s.substr(0, pos);
             tokens.push_back(token);
             copy_s.erase(0, pos + delimiter.length());
@@ -27,7 +27,7 @@ namespace {
     // return -1 if no element is find
     int find(vector<string> v, string s)
     {
-        auto it = std::find(v.begin(), v.end(), s); 
+        auto it = find(v.begin(), v.end(), s); 
 
         if (it != v.end()) 
             return it - v.begin(); 
@@ -37,12 +37,12 @@ namespace {
 }
 
 SettingItem::SettingItem(
-        string id, 
-        string description, 
-        string optionsString,
-        string displayValuesString,
-        string selectedValue,
-        string commandsString
+        const string & id, 
+        const string & description, 
+        const string & optionsString,
+        const string & displayValuesString,
+        const string & selectedValue,
+        const string & commandsString
         )
     :id_(id), description_(description), optionsString_(optionsString),
      displayValuesString_(displayValuesString), selectedValue_(selectedValue),
