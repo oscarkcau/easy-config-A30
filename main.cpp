@@ -29,8 +29,6 @@ string programName;
 string configFileName;
 int fontSize = 28;
 vector<SettingGroup*> settingGroups = { new SettingGroup("Default") };
-int topItemIndex = 0;
-int selectedItemIndex = 0;
 unsigned int selectedGroupIndex = 0;
 SDL_Texture *messageBGTexture = nullptr;
 SDL_Rect overlay_bg_render_rect;
@@ -512,15 +510,20 @@ namespace {
             }            
         }
 
+        auto group = settingGroups[selectedGroupIndex];
+        int selectedItemIndex = static_cast<int>(group->getSelectedIndex());
+        int topItemIndex = static_cast<int>(group->getDisplayTopIndex());
+        if (topItemIndex > selectedItemIndex) topItemIndex = selectedItemIndex;
+
         int offsetY = marginTop;
         int totalHeight = marginTop + (selectedItemIndex - topItemIndex ) * rowHeight;
 
         // adjust top item to display
         if (totalHeight < marginTop) topItemIndex--;
         if (totalHeight + rowHeight * 2 > global::SCREEN_WIDTH) topItemIndex++;
+        group->setDisplayTopIndex(static_cast<unsigned int>(topItemIndex));
 
         int index = 0;
-        auto group = settingGroups[selectedGroupIndex];
         auto items = group->getItems();
         for (auto &item : items)
         {
@@ -615,7 +618,8 @@ namespace {
 		if (event.type != SDL_KEYDOWN)
 			return;
 
-        unsigned int index = static_cast<unsigned int>(selectedItemIndex); 
+        auto group = settingGroups[selectedGroupIndex];
+        unsigned int index = group->getSelectedIndex(); 
 
 		const auto sym = event.key.keysym.sym;
 		switch (sym)
@@ -626,20 +630,20 @@ namespace {
 		// button UP (Up arrow key)
 		case SDLK_UP:
             if (index > 0) 
-                selectedItemIndex--;
+                group->setSelectedIndex(index - 1);
 			break;
 		// button DOWN (Down arrow key)
 		case SDLK_DOWN:
-            if (index < settingGroups[selectedGroupIndex]->getItems().size() - 1)
-                selectedItemIndex++;
+            if (index < group->getSize() - 1)
+                group->setSelectedIndex(index + 1);
 			break;
 		// button LEFT (Left arrow key)
 		case SDLK_LEFT:
-            settingGroups[selectedGroupIndex]->getItems()[index]->selectPreviousValue();
+            group->getSelectedItem()->selectPreviousValue();
 			break;
 		// button RIGHT (Right arrow key)
 		case SDLK_RIGHT:
-            settingGroups[selectedGroupIndex]->getItems()[index]->selectNextValue();
+            group->getSelectedItem()->selectNextValue();
 			break;
 		// button Y (Left Alt key)
 		case SDLK_LALT:
@@ -649,8 +653,6 @@ namespace {
             if (selectedGroupIndex > 0)
             { 
                 selectedGroupIndex--;
-                selectedItemIndex = 0;
-                topItemIndex = 0;
                 updateGroupNameTexture();
                 ScrollLeft();
             }
@@ -660,8 +662,6 @@ namespace {
             if (selectedGroupIndex < settingGroups.size() - 1)
             {
                 selectedGroupIndex++;
-                selectedItemIndex = 0;
-                topItemIndex = 0;
                 updateGroupNameTexture();
                 ScrollRight();
             }
