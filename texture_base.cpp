@@ -13,10 +13,10 @@ TextureBase::TextureBase(SDL_Surface *surface, TextureAlignment alignment)
     init(surface, alignment);
 }
 
-void TextureBase::init(SDL_Surface *surface, TextureAlignment alignment) {
+void TextureBase::init(SDL_Surface *surface, TextureAlignment alignment, double scale) {
     // init width and height
-    w_ = surface->w;
-    h_ = surface->h;
+    w_ = static_cast<int>(surface->w * scale);
+    h_ = static_cast<int>(surface->h * scale);
 
     // create texture
     createTexture(surface);
@@ -36,6 +36,8 @@ void TextureBase::createTexture(SDL_Surface *surface) {
     };
     if (texture_ == nullptr)
         cerr << ("Texture creation failed") << endl;
+
+    SDL_SetTextureBlendMode(texture_.get(), SDL_BLENDMODE_BLEND);
 }
 
 

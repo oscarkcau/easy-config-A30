@@ -578,6 +578,8 @@ namespace {
     void ScrollLeft() {
         double step = 1;
         while (step > 0) {
+            SDL_RenderClear(global::renderer);
+
             // render setting items
             double easing = easeInOutQuart(step); 
             int offsetX = static_cast<int>(-global::SCREEN_HEIGHT * easing);
@@ -597,6 +599,8 @@ namespace {
     void ScrollRight() {
         double step = 1;
         while (step > 0) {
+            SDL_RenderClear(global::renderer);
+
             // render setting items
             double easing = easeInOutQuart(step); 
             int offsetX = static_cast<int>(global::SCREEN_HEIGHT * easing);
@@ -699,7 +703,7 @@ int main(int argc, char *argv[])
 	if (TTF_Init() == -1)
 		printErrorAndExit("TTF_Init failed: ", SDL_GetError());
 
-	global::font = TTF_OpenFont((resourcePath + "./nunwen.ttf").c_str(), fontSize);
+	global::font = TTF_OpenFont((resourcePath + "./nunwen.ttf").c_str(), fontSize*2);
 	if (global::font == nullptr)
 		printErrorAndExit("Font loading failed: ", TTF_GetError());
 
@@ -739,6 +743,8 @@ int main(int argc, char *argv[])
 		}
 
         // render setting items
+        SDL_SetRenderDrawColor(global::renderer, 0, 0, 0, 255);
+        SDL_RenderClear(global::renderer);
         renderAllSettings();
         SDL_RenderPresent(global::renderer);
 

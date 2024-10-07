@@ -16,7 +16,7 @@ public:
     TextureBase(const TextureBase &) = delete;
     TextureBase &operator=(const TextureBase &) = delete;
 
-    void init(SDL_Surface *surface, TextureAlignment alignment);
+    void init(SDL_Surface *surface, TextureAlignment alignment, double scale=1.0);
     void updateTargetRect(TextureAlignment alignment);
     void render() const;
     void render(int offsetX, int offsetY) const;

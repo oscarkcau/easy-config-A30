@@ -14,7 +14,7 @@ TextTexture::TextTexture(const string & text, TTF_Font *font, SDL_Color color,
         color
     );
     
-    init(surface, alignment);
+    init(surface, alignment, 0.5);
 
     // free surface
 	SDL_FreeSurface(surface);
@@ -32,7 +32,7 @@ TextTexture::TextTexture(const string & text, TTF_Font *font, SDL_Color color,
         wrapLength
     );
 
-    init(surface, alignment);
+    init(surface, alignment, 0.5);
 
     // free surface
 	SDL_FreeSurface(surface);
