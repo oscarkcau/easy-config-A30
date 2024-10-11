@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <stdexcept>
+#include <map>
 
 #include <SDL.h>
 #include <SDL_image.h>
@@ -22,7 +23,7 @@ using std::istream, std::ostream, std::getline;
 using std::ifstream, std::ofstream;
 using std::istringstream, std::ostringstream;
 using std::quoted;
-using std::vector;
+using std::vector, std::map;
 
 // global variables used in main.cpp
 string programName;
@@ -45,6 +46,7 @@ TextTexture* groupNameTexture = nullptr;
 ImageTexture* toggleOnTexture = nullptr;
 ImageTexture* toggleOffTexture = nullptr;
 bool isShowTitle = false;
+map<string, string> my_map;
 
 namespace {
     class BracketedString {
@@ -243,6 +245,24 @@ namespace {
             // skip line start with '#'
             if (line.front() == '#') continue;
 
+            // handle alias
+            if (line.front() == '$') {
+                istringstream iss(line);
+                string pair;
+                if (! (iss >> quoted(pair, '$'))) 
+                    printErrorAndExit("cannot process line1: ", line);
+
+                auto pos = pair.find("=");
+                if (pos == string::npos || pos == 0 || pos >= pair.length() - 1)
+                    printErrorAndExit("cannot process line2: ", line);
+
+                string name = '$' + pair.substr(0, pos) + '$';
+                string value = pair.substr(pos + 1);
+                my_map[name] = value;
+                cout << name << ' ' << value << endl;
+                continue;
+            }
+
             // try read line as setting group
             if (line.front() == '[') {
                 istringstream iss(line);
@@ -314,6 +334,15 @@ namespace {
         // exit if file cannot open
         if (!file.is_open()) printErrorAndExit("cannot open file: ", filename);
 
+        // write all alias to file
+        for (const auto& [key, value] : my_map)
+        {
+            string key_ = key;
+            key_ = key.substr(1, key.length() - 2);
+
+            file << quoted(key_ + '=' + value, '$') << endl;
+        }
+
         // write all settings to file
         for (auto &group : settingGroups)
         {
@@ -382,7 +411,21 @@ namespace {
                 if (commands.size() == 0) continue;
                 if (index == item->getOldSelectedIndex()) continue;
 
-                system(commands[index].c_str());
+                string cmd = commands[index];
+            
+                for (const auto& [key, value] : my_map)
+                {
+                    while (true) {
+                        std::size_t start = 0;
+                        auto pos = cmd.find(key, start);
+                        if (pos == string::npos) break;
+                        cmd.replace(pos, key.length(), value);
+                        start = pos + key.length();
+                        if (start >= cmd.length()) break;
+                    }
+                }
+
+                system(cmd.c_str());
             }
         }
     }
