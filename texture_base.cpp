@@ -13,7 +13,10 @@ TextureBase::TextureBase(SDL_Surface *surface, TextureAlignment alignment)
     init(surface, alignment);
 }
 
-void TextureBase::init(SDL_Surface *surface, TextureAlignment alignment, double scale) {
+void TextureBase::init(SDL_Surface *surface, TextureAlignment alignment, double scale) 
+{
+    alignment_ = alignment;
+
     // init width and height
     w_ = static_cast<int>(surface->w * scale);
     h_ = static_cast<int>(surface->h * scale);
@@ -77,6 +80,15 @@ void TextureBase::updateTargetRect(TextureAlignment alignment) {
     }
 }
 
+void TextureBase::FitScreenSize(int marginX, int marginY) {
+
+    if (w_ > global::SCREEN_HEIGHT - marginX * 2) 
+        w_ = global::SCREEN_HEIGHT - marginX * 2;
+    if (h_ > global::SCREEN_WIDTH - marginY * 2) 
+        h_ = global::SCREEN_WIDTH - marginY * 2;
+
+    updateTargetRect(alignment_);
+}
 
 void TextureBase::render() const {
     SDL_RenderCopyEx(global::renderer, 

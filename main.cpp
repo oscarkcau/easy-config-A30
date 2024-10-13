@@ -23,7 +23,7 @@ using std::istream, std::ostream, std::getline;
 using std::ifstream, std::ofstream;
 using std::istringstream, std::ostringstream;
 using std::quoted;
-using std::vector, std::map;
+using std::vector;
 
 // global variables used in main.cpp
 string programName;
@@ -34,7 +34,7 @@ unsigned int selectedGroupIndex = 0;
 SDL_Texture *messageBGTexture = nullptr;
 SDL_Rect overlay_bg_render_rect;
 string titleText = "";
-string instructionText = "\u2191 / \u2193 Select item   \u2190/\u2192 Change value   \u24B7 Exit";;
+string instructionText = "\u2191 / \u2193 Select item   \u2190/\u2192 Change value   \u24B7 Exit & Save";;
 string resourcePath = "res/";
 TextTexture* titleTexture = nullptr;
 TextTexture* instructionTexture = nullptr;
@@ -46,7 +46,6 @@ TextTexture* groupNameTexture = nullptr;
 ImageTexture* toggleOnTexture = nullptr;
 ImageTexture* toggleOffTexture = nullptr;
 bool isShowTitle = false;
-map<string, string> my_map;
 
 namespace {
     class BracketedString {
@@ -233,6 +232,7 @@ namespace {
 
         // iterate all input line
         string line;
+        SettingItem * lastItem = nullptr;
         while (getline(file, line))
         {
             // trim input line
@@ -258,7 +258,7 @@ namespace {
 
                 string name = '$' + pair.substr(0, pos) + '$';
                 string value = pair.substr(pos + 1);
-                my_map[name] = value;
+                global::aliases[name] = value;
                 cout << name << ' ' << value << endl;
                 continue;
             }
@@ -281,6 +281,24 @@ namespace {
                 continue;
             }
 
+            // handle minor text
+            if (line.front() == '@') {
+                // skip first character
+                string s = line;
+                s.erase(s.begin());
+
+                istringstream iss(s);
+                string minorText;
+                iss >> quoted(minorText);
+
+                if (minorText.empty() || lastItem == nullptr)
+                    printErrorAndExit("cannot process line: ", line);
+
+                lastItem->setMinorText(minorText);
+
+                continue;
+            }
+
             // process line with string stream
             // try read line as setting item
             string id, description, options, displayValues, selectedValue;
@@ -295,8 +313,8 @@ namespace {
             }
 
             // try read commands
-            string commands;
-            iss >> quoted(commands);
+            string commands, infoCommand;
+            iss >> quoted(commands) >> quoted(infoCommand);
 
             // create setting item
             auto item = new SettingItem(
@@ -305,7 +323,8 @@ namespace {
                 options,
                 displayValues, 
                 selectedValue,
-                commands
+                commands,
+                infoCommand
             );
 
             if (item->IsInitOK() == false) {
@@ -314,6 +333,9 @@ namespace {
 
             // add item to recent created group
             settingGroups.back()->getItems().push_back(item);
+
+            // store last item
+            lastItem = item;
         }
 
 		// close file
@@ -335,7 +357,7 @@ namespace {
         if (!file.is_open()) printErrorAndExit("cannot open file: ", filename);
 
         // write all alias to file
-        for (const auto& [key, value] : my_map)
+        for (const auto& [key, value] : global::aliases)
         {
             string key_ = key;
             key_ = key.substr(1, key.length() - 2);
@@ -355,11 +377,23 @@ namespace {
                 file << quoted(item->getID()) << ' '
                     << quoted(item->getDescription()) << ' '
                     << quoted(item->getOptionsString()) << ' '
-                    << quoted(item->getDisplayValuesString_()) << ' '
-                    << quoted(item->getSelectedValue());
-                if (!item->getCommandsString().empty())
+                    << quoted(item->getDisplayValuesString_()) << ' ';
+                    
+                if (!item->getSourceCommandString().empty())
+                    file << quoted(item->getSourceCommandString());
+                else
+                    file << quoted(item->getSelectedValue());
+
+                // if (!item->getCommandsString().empty())
                     file << ' ' << quoted(item->getCommandsString());
+
+                // if (!item->getInfoCommandString().empty())
+                    file << ' ' << quoted(item->getInfoCommandString());
+
                 file << endl;
+
+                if (!item->getMinorText().empty())
+                    file << '@' << quoted(item->getMinorText()) << endl;
             }
         }
 
@@ -408,23 +442,18 @@ namespace {
                 auto commands = item->getCommands();
                 auto index = item->getSelectedIndex();
 
+                // skip item if no command provided
                 if (commands.size() == 0) continue;
+
+                // skil item if item value does not changed
                 if (index == item->getOldSelectedIndex()) continue;
 
                 string cmd = commands[index];
-            
-                for (const auto& [key, value] : my_map)
-                {
-                    while (true) {
-                        std::size_t start = 0;
-                        auto pos = cmd.find(key, start);
-                        if (pos == string::npos) break;
-                        cmd.replace(pos, key.length(), value);
-                        start = pos + key.length();
-                        if (start >= cmd.length()) break;
-                    }
-                }
 
+                // replace aliases with corresponding value
+                cmd = global::replaceAliases(cmd);
+
+                // run the command
                 system(cmd.c_str());
             }
         }
@@ -494,7 +523,8 @@ namespace {
             global::text_color,
             TextureAlignment::bottomCenter
         );
-		SDL_SetTextureAlphaMod(instructionTexture->getTexture(), 200);
+        instructionTexture->FitScreenSize(10, 0);
+		SDL_SetTextureAlphaMod(instructionTexture->getTexture(), 128);
 
         // create left and right arrow textures
         prevTexture = new TextTexture(
@@ -532,7 +562,6 @@ namespace {
         int marginLeft = 20;
         int marginRight = 20;
         int valueSpece = 50;
-        int rowHeight = fontSize * 2 + 2;
 
         // render title and instruction
         if (isShowTitle) titleTexture->render(0, 10);
@@ -553,32 +582,36 @@ namespace {
             }            
         }
 
+        // get some display parameters
         auto group = settingGroups[selectedGroupIndex];
         int selectedItemIndex = static_cast<int>(group->getSelectedIndex());
         int topItemIndex = static_cast<int>(group->getDisplayTopIndex());
         if (topItemIndex > selectedItemIndex) topItemIndex = selectedItemIndex;
 
-        int offsetY = marginTop;
-        int totalHeight = marginTop + (selectedItemIndex - topItemIndex ) * rowHeight;
-
         // adjust top item to display
-        if (totalHeight < marginTop) topItemIndex--;
-        if (totalHeight + rowHeight * 2 > global::SCREEN_WIDTH) topItemIndex++;
+        int totalHeight = marginTop;
+        for (int i=topItemIndex; i<=selectedItemIndex; i++)
+            totalHeight += group->getItems()[i]->getHeight();
+
+        if (totalHeight > global::SCREEN_WIDTH - instructionTexture->getHeight()) topItemIndex++;
         group->setDisplayTopIndex(static_cast<unsigned int>(topItemIndex));
 
+        // iterate and render all items within the screen
         int index = 0;
+        int offsetY = marginTop;
         auto items = group->getItems();
         for (auto &item : items)
         {
             // skip items that are outside screen
             if (index < topItemIndex) { index++; continue; };
-            if (offsetY + rowHeight * 2 > global::SCREEN_WIDTH) break;
+            if (offsetY + item->getHeight() > global::SCREEN_WIDTH - instructionTexture->getHeight()) break;
 
             // render background if it is selected
             if (index == selectedItemIndex && isShowHighlight)
             {
                 auto rect = overlay_bg_render_rect;
-                rect.x += offsetY - fontSize / 4;
+                rect.x += offsetY;// - fontSize / 4;
+                rect.w = item->getHeight();
                 SDL_RenderCopy(global::renderer, messageBGTexture, nullptr, &rect);
             }
 
@@ -589,31 +622,32 @@ namespace {
             if (item->isOnOffSetting())
             {
                 int x = offsetX + global::SCREEN_HEIGHT - marginRight;
-                //x -= nextTexture->getWidth() + valueSpece;
                 x -= toggleOnTexture->getWidth();
+                int y = offsetY + (item->getHeight() - toggleOnTexture->getHeight()) / 2;
                 if (item->getSelectedIndex() == 0)
-                    toggleOnTexture->render(x, offsetY);
+                    toggleOnTexture->render(x, y);
                 else
-                    toggleOffTexture->render(x, offsetY);
+                    toggleOffTexture->render(x, y);
             }
             else
             {
                 int x = offsetX + global::SCREEN_HEIGHT - marginRight;
+                int y = offsetY + item->getValueOffsetY();
                 if (index == selectedItemIndex) {
                     x -= nextTexture->getWidth();
-                    nextTexture->render(x, offsetY);
+                    nextTexture->render(x, y);
                     x -= valueSpece;
                 }
                 x -= item->getValueTexture()->getWidth();
                 item->renderValue(x, offsetY);
                 if (index == selectedItemIndex) {
                     x -= valueSpece + prevTexture->getWidth();
-                    prevTexture->render(x, offsetY);
+                    prevTexture->render(x, y);
                 }
             }
 
             // update offset and index
-            offsetY += rowHeight;
+            offsetY += item->getHeight();
             index++;
         }
     }

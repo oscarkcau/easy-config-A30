@@ -18,6 +18,7 @@ public:
 
     void init(SDL_Surface *surface, TextureAlignment alignment, double scale=1.0);
     void updateTargetRect(TextureAlignment alignment);
+    void FitScreenSize(int marginX=0, int marginY=0);
     void render() const;
     void render(int offsetX, int offsetY) const;
     void scrollLeft(int offset);
@@ -34,6 +35,7 @@ private:
     int w_, h_;
     SDL_Rect rect_;
     SDLTextureUniquePtr texture_ = nullptr;
+    TextureAlignment alignment_;
 };
 
 #endif // TEXTURE_BASE_H
