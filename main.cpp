@@ -34,7 +34,7 @@ unsigned int selectedGroupIndex = 0;
 SDL_Texture *messageBGTexture = nullptr;
 SDL_Rect overlay_bg_render_rect;
 string titleText = "";
-string instructionText = "\u2191 / \u2193 Select item   \u2190/\u2192 Change value   \u24B7 Exit & Save";;
+string instructionText = "\u24B7 Cancel & Exit    \u24B6 Save & Exit";
 string resourcePath = "res/";
 TextTexture* titleTexture = nullptr;
 TextTexture* instructionTexture = nullptr;
@@ -520,11 +520,10 @@ namespace {
         instructionTexture = new TextTexture(
             instructionText, 
             global::font,
-            global::text_color,
+            global::minor_text_color,
             TextureAlignment::bottomCenter
         );
         instructionTexture->FitScreenSize(10, 0);
-		SDL_SetTextureAlphaMod(instructionTexture->getTexture(), 128);
 
         // create left and right arrow textures
         prevTexture = new TextTexture(
@@ -707,7 +706,11 @@ namespace {
 		{
 		// button A (Space key)
 		case SDLK_SPACE:
-			break;
+            saveConfigFile(configFileName);
+            saveOptionsFile();
+            runCommands();
+            exit(0);
+        	break;
 		// button UP (Up arrow key)
 		case SDLK_UP:
             if (index > 0) 
@@ -752,9 +755,6 @@ namespace {
 		// button B (Left control key)
 		if (event.key.keysym.mod == KMOD_LCTRL)
 		{
-            saveConfigFile(configFileName);
-            saveOptionsFile();
-            runCommands();
             exit(0);
 		}
 	}
