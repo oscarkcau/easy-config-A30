@@ -43,6 +43,7 @@ TextTexture* nextTexture = nullptr;
 TextTexture* buttonLTexture = nullptr;
 TextTexture* buttonRTexture = nullptr;
 TextTexture* groupNameTexture = nullptr;
+TextTexture* itemIndexTexture = nullptr;
 ImageTexture* toggleOnTexture = nullptr;
 ImageTexture* toggleOffTexture = nullptr;
 bool isShowTitle = false;
@@ -480,6 +481,18 @@ namespace {
         );
     }
 
+    void updateItemIndexTexture() {
+        ostringstream oss;
+        auto group = settingGroups[selectedGroupIndex];
+        oss << '[' << group->getSelectedIndex() + 1 << '/' << group->getSize() << ']';
+        itemIndexTexture = new TextTexture(
+            oss.str(),
+            global::font,
+            global::text_color,
+            TextureAlignment::bottomRight
+        );
+    }
+
 	void prepareTextures()
 	{
 		// create message overlay background texture
@@ -521,9 +534,9 @@ namespace {
             instructionText, 
             global::font,
             global::minor_text_color,
-            TextureAlignment::bottomCenter
+            TextureAlignment::bottomLeft
         );
-        instructionTexture->FitScreenSize(10, 0);
+        //instructionTexture->FitScreenSize(10, 0);
 
         // create left and right arrow textures
         prevTexture = new TextTexture(
@@ -564,7 +577,10 @@ namespace {
 
         // render title and instruction
         if (isShowTitle) titleTexture->render(0, 10);
-        if (isShowInstruction) instructionTexture->render();
+        if (isShowInstruction) {
+             instructionTexture->render(10, 0);
+             itemIndexTexture->render(-10, 0);
+        }
 
         // render current group name
         if (settingGroups.size() > 1) {
@@ -713,14 +729,18 @@ namespace {
         	break;
 		// button UP (Up arrow key)
 		case SDLK_UP:
-            if (index > 0) 
+            if (index > 0) {
                 group->setSelectedIndex(index - 1);
-			break;
+                updateItemIndexTexture();
+            }
+            break;
 		// button DOWN (Down arrow key)
 		case SDLK_DOWN:
-            if (index < group->getSize() - 1)
+            if (index < group->getSize() - 1) {
                 group->setSelectedIndex(index + 1);
-			break;
+                updateItemIndexTexture();
+            }
+            break;
 		// button LEFT (Left arrow key)
 		case SDLK_LEFT:
             group->getSelectedItem()->selectPreviousValue();
@@ -738,6 +758,7 @@ namespace {
             { 
                 selectedGroupIndex--;
                 updateGroupNameTexture();
+                updateItemIndexTexture();
                 ScrollLeft();
             }
             break;
@@ -747,6 +768,7 @@ namespace {
             {
                 selectedGroupIndex++;
                 updateGroupNameTexture();
+                updateItemIndexTexture();
                 ScrollRight();
             }
 			break;
@@ -800,6 +822,7 @@ int main(int argc, char *argv[])
     // prepare common textures
     prepareTextures();
     updateGroupNameTexture();
+    updateItemIndexTexture();
 
 	// Execute main loop of the window
 	while (true)
@@ -820,7 +843,7 @@ int main(int argc, char *argv[])
 		}
 
         // render setting items
-        SDL_SetRenderDrawColor(global::renderer, 0, 0, 0, 255);
+        SDL_SetRenderDrawColor(global::renderer, 40, 40, 40, 255);
         SDL_RenderClear(global::renderer);
         renderAllSettings();
         SDL_RenderPresent(global::renderer);
