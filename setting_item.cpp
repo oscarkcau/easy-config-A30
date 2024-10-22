@@ -211,3 +211,9 @@ bool SettingItem::isOnOffSetting() const
         displayValues_[1] == "off";
 }
 
+bool SettingItem::isRunOffSetting() const 
+{
+    return displayValues_.size() == 2 &&
+        displayValues_[0] == "run" &&
+        displayValues_[1] == "off";
+}

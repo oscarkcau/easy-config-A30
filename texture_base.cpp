@@ -77,6 +77,10 @@ void TextureBase::updateTargetRect(TextureAlignment alignment) {
             rect_.y = (global::SCREEN_HEIGHT - h_) / 2 -
                 (global::SCREEN_HEIGHT - w_) / 2;
         break;
+        case TextureAlignment::center:
+            rect_.x = (global::SCREEN_WIDTH - w_) / 2;
+            rect_.y = (global::SCREEN_HEIGHT - h_) / 2;
+        break;
     }
 }
 

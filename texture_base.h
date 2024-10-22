@@ -3,7 +3,7 @@
 
 #include "sdl_unique_ptr.h"
 
-enum class TextureAlignment { topCenter, topLeft, topRight, bottomCenter, bottomLeft, bottomRight };
+enum class TextureAlignment { topCenter, topLeft, topRight, bottomCenter, bottomLeft, bottomRight, center };
 
 class TextureBase
 {

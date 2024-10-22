@@ -27,6 +27,7 @@ public:
     void selectPreviousValue();
     void selectNextValue();
     bool isOnOffSetting() const;
+    bool isRunOffSetting() const;
 
     const string & getID() const { return id_; }
     const string & getDescription() const { return description_; }

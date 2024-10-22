@@ -38,6 +38,7 @@ string instructionText = "\u24B7 Cancel & Exit    \u24B6 Save & Exit";
 string resourcePath = "res/";
 TextTexture* titleTexture = nullptr;
 TextTexture* instructionTexture = nullptr;
+TextTexture* applyingSettingsTexture = nullptr;
 TextTexture* prevTexture = nullptr;
 TextTexture* nextTexture = nullptr;
 TextTexture* buttonLTexture = nullptr;
@@ -46,7 +47,10 @@ TextTexture* groupNameTexture = nullptr;
 TextTexture* itemIndexTexture = nullptr;
 ImageTexture* toggleOnTexture = nullptr;
 ImageTexture* toggleOffTexture = nullptr;
+ImageTexture* runOnTexture = nullptr;
+ImageTexture* runOffTexture = nullptr;
 bool isShowTitle = false;
+bool isShowSinglePage = false;
 
 namespace {
     class BracketedString {
@@ -218,6 +222,15 @@ namespace {
 				printUsage();
 				exit(0);
 			}
+            else if (strcmp(option, "-p") == 0)
+            {
+				if (i == argc - 1) printErrorUsageAndExit("-p: Missing option value");
+                int page = atoi(argv[i+1]);
+                if (page <= 0) printErrorUsageAndExit("-p: Invalid page index");
+                isShowSinglePage = true;
+                selectedGroupIndex = static_cast<unsigned int>(page - 1);
+                i += 2;
+            }
 			else
 				printErrorUsageAndExit("Invalue option: ", option);
         }
@@ -347,6 +360,12 @@ namespace {
         {
             settingGroups.erase(settingGroups.begin());
         }
+
+        // adjust selectedGroupIndex
+        if (selectedGroupIndex >= settingGroups.size()) 
+        { 
+            selectedGroupIndex = settingGroups.size() - 1;
+        }
     }
 
     void saveConfigFile(const string &filename) {
@@ -436,6 +455,12 @@ namespace {
     }
 
     void runCommands() {
+        // render setting items
+        SDL_SetRenderDrawColor(global::renderer, 40, 40, 40, 255);
+        SDL_RenderClear(global::renderer);
+        applyingSettingsTexture->render();
+        SDL_RenderPresent(global::renderer);
+
         for (auto &group : settingGroups)
         {
             for (auto &item : group->getItems())
@@ -468,7 +493,7 @@ namespace {
             if (group == settingGroups[selectedGroupIndex]) {
                 oss << group->getName();
             }
-            else {
+            else if (!isShowSinglePage) {
                 oss << " \u2022 ";
             }
         }
@@ -520,6 +545,8 @@ namespace {
         // create texture for on/off toggle button
         toggleOnTexture = new ImageTexture(resourcePath + "toggle-on.png");
         toggleOffTexture = new ImageTexture(resourcePath + "toggle-off.png");
+        runOnTexture = new ImageTexture(resourcePath + "run-on.png");
+        runOffTexture = new ImageTexture(resourcePath + "run-off.png");
 
         // create title and instruction texture
         if (isShowTitle) {
@@ -535,6 +562,12 @@ namespace {
             global::font,
             global::minor_text_color,
             TextureAlignment::bottomLeft
+        );
+        applyingSettingsTexture = new TextTexture(
+            "Applying settings...", 
+            global::font,
+            global::text_color,
+            TextureAlignment::center
         );
         //instructionTexture->FitScreenSize(10, 0);
 
@@ -587,13 +620,13 @@ namespace {
             if (!isShowTitle) {
                 marginTop += 10;
                 groupNameTexture->render(0, 10);
-                buttonLTexture->render(0, 10);
-                buttonRTexture->render(0, 10);
+                if (!isShowSinglePage) buttonLTexture->render(0, 10);
+                if (!isShowSinglePage) buttonRTexture->render(0, 10);
             } else {
                 marginTop += 60;
                 groupNameTexture->render(0, 60);
-                buttonLTexture->render(0, 60);
-                buttonRTexture->render(0, 60);
+                if (!isShowSinglePage) buttonLTexture->render(0, 60);
+                if (!isShowSinglePage) buttonRTexture->render(0, 60);
             }            
         }
 
@@ -643,6 +676,16 @@ namespace {
                     toggleOnTexture->render(x, y);
                 else
                     toggleOffTexture->render(x, y);
+            }
+            else if (item->isRunOffSetting())
+            {
+                int x = offsetX + global::SCREEN_HEIGHT - marginRight;
+                x -= runOnTexture->getWidth();
+                int y = offsetY + (item->getHeight() - runOnTexture->getHeight()) / 2;
+                if (item->getSelectedIndex() == 0)
+                    runOnTexture->render(x, y);
+                else
+                    runOffTexture->render(x, y);
             }
             else
             {
@@ -754,7 +797,7 @@ namespace {
 			break;
 		// button L1 (Tab key)
 		case SDLK_TAB:
-            if (selectedGroupIndex > 0)
+            if (selectedGroupIndex > 0 && !isShowSinglePage)
             { 
                 selectedGroupIndex--;
                 updateGroupNameTexture();
@@ -764,7 +807,7 @@ namespace {
             break;
 		// button R1 (Backspace key)
 		case SDLK_BACKSPACE:
-            if (selectedGroupIndex < settingGroups.size() - 1)
+            if (selectedGroupIndex < settingGroups.size() - 1 && !isShowSinglePage)
             {
                 selectedGroupIndex++;
                 updateGroupNameTexture();
