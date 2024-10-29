@@ -34,7 +34,7 @@ unsigned int selectedGroupIndex = 0;
 SDL_Texture *messageBGTexture = nullptr;
 SDL_Rect overlay_bg_render_rect;
 string titleText = "";
-string instructionText = "\u24B7 Cancel & Exit    \u24B6 Save & Exit";
+string instructionText = "Select-Cancel  Start/\u24B7-Save  \u21C4/\u24B6-Change";
 string resourcePath = "res/";
 TextTexture* titleTexture = nullptr;
 TextTexture* instructionTexture = nullptr;
@@ -773,10 +773,7 @@ namespace {
 		{
 		// button A (Space key)
 		case SDLK_SPACE:
-            saveConfigFile(configFileName);
-            saveOptionsFile();
-            runCommands();
-            exit(0);
+            group->getSelectedItem()->selectNextValue();
         	break;
 		// button UP (Up arrow key)
 		case SDLK_UP:
@@ -823,10 +820,25 @@ namespace {
                 ScrollRight();
             }
 			break;
+        // button START
+        case SDLK_RETURN:
+            saveConfigFile(configFileName);
+            saveOptionsFile();
+            runCommands();
+            exit(0);
+			break;
 		}
 
 		// button B (Left control key)
 		if (event.key.keysym.mod == KMOD_LCTRL)
+		{
+            saveConfigFile(configFileName);
+            saveOptionsFile();
+            runCommands();
+            exit(0);
+		} 
+        // button SELECT
+        else if (event.key.keysym.mod == KMOD_RCTRL)
 		{
             exit(0);
 		}
