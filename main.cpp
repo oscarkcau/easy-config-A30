@@ -134,9 +134,11 @@ namespace {
     void printUsage()
     {
 		cout << endl
-			 << "Usage: easyConfig config_file [-t title]" << endl
+			 << "Usage: easyConfig config_file [-t title] [-p index] [-o]" << endl
 			 << endl
 			 << "-t:\ttitle of the config window." << endl
+			 << "-p:\tshow i-th group only (first group index = 1)." << endl
+			 << "-o:\tgenerate options only" << endl
 			 << "-h,--help\tshow this help message." << endl
              << endl
 			 << endl
@@ -191,49 +193,6 @@ namespace {
 		cerr << endl;
 		printUsage();
 		exit(0);
-    }
-
-	void handleOptions(int argc, char *argv[])
-	{
-        // get program name
-		programName = File_utils::getFileName(argv[0]);
-
-		// ensuer enough number of arguments
-		if (argc < 2)
-			printErrorUsageAndExit("Arguments missing");
-
-        // get config filename
-        configFileName = argv[1];
-
-        int i = 2;
-		while (i < argc)
-        {
-			auto option = argv[i];
-            if (strcmp(option, "-t") == 0)
-            {
-				if (i == argc - 1) printErrorUsageAndExit("-t: Missing option value");
-                titleText = argv[i+1];
-                if (titleText.empty()) printErrorUsageAndExit("-t: Title can't ne empty");
-                isShowTitle = true;
-                i += 2;
-            }
-			else if (strcmp(option, "-h") == 0 || strcmp(option, "--help") == 0)
-			{
-				printUsage();
-				exit(0);
-			}
-            else if (strcmp(option, "-p") == 0)
-            {
-				if (i == argc - 1) printErrorUsageAndExit("-p: Missing option value");
-                int page = atoi(argv[i+1]);
-                if (page <= 0) printErrorUsageAndExit("-p: Invalid page index");
-                isShowSinglePage = true;
-                selectedGroupIndex = static_cast<unsigned int>(page - 1);
-                i += 2;
-            }
-			else
-				printErrorUsageAndExit("Invalue option: ", option);
-        }
     }
 
 	void loadConfigFile(const char *filename)
@@ -485,6 +444,55 @@ namespace {
         }
     }
 
+	void handleOptions(int argc, char *argv[])
+	{
+        // get program name
+		programName = File_utils::getFileName(argv[0]);
+
+		// ensuer enough number of arguments
+		if (argc < 2)
+			printErrorUsageAndExit("Arguments missing");
+
+        // get config filename
+        configFileName = argv[1];
+
+        int i = 2;
+		while (i < argc)
+        {
+			auto option = argv[i];
+            if (strcmp(option, "-t") == 0)
+            {
+				if (i == argc - 1) printErrorUsageAndExit("-t: Missing option value");
+                titleText = argv[i+1];
+                if (titleText.empty()) printErrorUsageAndExit("-t: Title can't ne empty");
+                isShowTitle = true;
+                i += 2;
+            }
+			else if (strcmp(option, "-h") == 0 || strcmp(option, "--help") == 0)
+			{
+				printUsage();
+				exit(0);
+			}
+            else if (strcmp(option, "-p") == 0)
+            {
+				if (i == argc - 1) printErrorUsageAndExit("-p: Missing option value");
+                int page = atoi(argv[i+1]);
+                if (page <= 0) printErrorUsageAndExit("-p: Invalid page index");
+                isShowSinglePage = true;
+                selectedGroupIndex = static_cast<unsigned int>(page - 1);
+                i += 2;
+            }
+            else if (strcmp(option, "-o") == 0)
+            {
+                loadConfigFile(argv[1]);
+                saveOptionsFile();
+                exit(0);
+            }
+			else
+				printErrorUsageAndExit("Invalue option: ", option);
+        }
+    }
+
     void updateGroupNameTexture()
     {
         ostringstream oss;
@@ -509,7 +517,7 @@ namespace {
     void updateItemIndexTexture() {
         ostringstream oss;
         auto group = settingGroups[selectedGroupIndex];
-        oss << '[' << group->getSelectedIndex() + 1 << '/' << group->getSize() << ']';
+        oss << group->getSelectedIndex() + 1 << '/' << group->getSize();
         itemIndexTexture = new TextTexture(
             oss.str(),
             global::font,
@@ -632,20 +640,20 @@ namespace {
 
         // get some display parameters
         auto group = settingGroups[selectedGroupIndex];
-        int selectedItemIndex = static_cast<int>(group->getSelectedIndex());
-        int topItemIndex = static_cast<int>(group->getDisplayTopIndex());
+        unsigned int selectedItemIndex = group->getSelectedIndex();
+        unsigned int topItemIndex = group->getDisplayTopIndex();
         if (topItemIndex > selectedItemIndex) topItemIndex = selectedItemIndex;
 
         // adjust top item to display
         int totalHeight = marginTop;
-        for (int i=topItemIndex; i<=selectedItemIndex; i++)
+        for (unsigned int i=topItemIndex; i<=selectedItemIndex; i++)
             totalHeight += group->getItems()[i]->getHeight();
 
         if (totalHeight > global::SCREEN_WIDTH - instructionTexture->getHeight()) topItemIndex++;
-        group->setDisplayTopIndex(static_cast<unsigned int>(topItemIndex));
+        group->setDisplayTopIndex(topItemIndex);
 
         // iterate and render all items within the screen
-        int index = 0;
+        unsigned int index = 0;
         int offsetY = marginTop;
         auto items = group->getItems();
         for (auto &item : items)
@@ -827,8 +835,6 @@ namespace {
 
 int main(int argc, char *argv[])
 {
-    handleOptions(argc, argv);
-
 	// Init SDL
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK);
 	if (IMG_Init(IMG_INIT_JPG | IMG_INIT_PNG | IMG_INIT_TIF | IMG_INIT_WEBP) == 0)
@@ -858,6 +864,8 @@ int main(int argc, char *argv[])
 	if (global::renderer == nullptr)
 		printErrorAndExit("Renderer creation failed");
 
+    // handle options 
+    handleOptions(argc, argv);
 
 	// load config file and create settingItem instances
 	loadConfigFile(argv[1]);
