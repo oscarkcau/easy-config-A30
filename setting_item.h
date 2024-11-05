@@ -12,6 +12,8 @@ using std::vector;
 class SettingItem
 {
 public:
+    explicit SettingItem(const string & infoCommand);
+
     explicit SettingItem(
         const string & id, 
         const string & description, 
@@ -45,6 +47,7 @@ public:
     unsigned int getSelectedIndex() const { return selectedIndex_; }
     unsigned int getOldSelectedIndex() const { return oldSelectedIndex_; }
     bool IsInitOK() const { return isInitOK_; }
+    bool isInfoText() const { return isInfoText_; }
     const string & getErrorMessage() const { return errorMessage_; }
     TextTexture* getDescriptionTexture() const { return descriptionTexture_; }
     TextTexture* getValueTexture() const { return valueTexture_; }
@@ -75,6 +78,7 @@ private:
     vector<string> commands_;
     unsigned int selectedIndex_, oldSelectedIndex_;
     bool isInitOK_ = false;
+    bool isInfoText_ = false;
     string sourceCommandString_;
     string infoCommandString_;
     string minorText_;

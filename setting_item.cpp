@@ -54,6 +54,26 @@ namespace {
     }
 }
 
+SettingItem::SettingItem(const string & infoCommand)
+    : description_(exec(global::replaceAliases(infoCommand))),
+    commandsString_(infoCommand),
+    isInfoText_(true)
+{
+    if (description_.empty()) {
+        isInitOK_ = false;
+        return;
+    }
+
+    // create texture for description text
+    descriptionTexture_ = new TextTexture(
+        description_, 
+        global::font,
+        global::minor_text_color
+    );
+    
+    isInitOK_ = true;
+}
+
 SettingItem::SettingItem(
         const string & id, 
         const string & description, 
@@ -130,6 +150,7 @@ void SettingItem::setMinorText(const string & text) {
 }
 
 void SettingItem::updateTextures() {
+    if (isInfoText_) return;
 
     // delete old value texture    
     if (valueTexture_ != nullptr) delete valueTexture_;
@@ -176,6 +197,8 @@ void SettingItem::renderDescription(int x, int y) const
 
 void SettingItem::renderValue(int x, int y) const
 {
+    if (isInfoText_) return;
+
     if (minorTextTexture_ != nullptr) {
         int offsetY = (getHeight() - valueTexture_->getHeight()) / 2;
         valueTexture_->render(x, y + offsetY);
@@ -186,6 +209,8 @@ void SettingItem::renderValue(int x, int y) const
 
 void SettingItem::selectPreviousValue()
 {
+    if (isInfoText_) return;
+
     if (selectedIndex_ == 0) selectedIndex_ = options_.size();
     selectedIndex_--;
 
@@ -196,6 +221,8 @@ void SettingItem::selectPreviousValue()
 
 void SettingItem::selectNextValue()
 {
+    if (isInfoText_) return;
+
     selectedIndex_++;
     if (selectedIndex_ >= options_.size()) selectedIndex_ = 0;
 
@@ -206,6 +233,8 @@ void SettingItem::selectNextValue()
 
 bool SettingItem::isOnOffSetting() const 
 {
+    if (isInfoText_) return false;
+
     return displayValues_.size() == 2 &&
         displayValues_[0] == "on" &&
         displayValues_[1] == "off";
@@ -213,6 +242,8 @@ bool SettingItem::isOnOffSetting() const
 
 bool SettingItem::isRunOffSetting() const 
 {
+    if (isInfoText_) return false;
+
     return displayValues_.size() == 2 &&
         displayValues_[0] == "run" &&
         displayValues_[1] == "off";

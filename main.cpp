@@ -34,7 +34,7 @@ unsigned int selectedGroupIndex = 0;
 SDL_Texture *messageBGTexture = nullptr;
 SDL_Rect overlay_bg_render_rect;
 string titleText = "";
-string instructionText = "Select-Cancel  Start/\u24B7-Save  \u21C4/\u24B6-Change";
+string instructionText = "\u24B6 Change  \u24B7 Save & Exit  [Select] Cancel";
 string resourcePath = "res/";
 TextTexture* titleTexture = nullptr;
 TextTexture* instructionTexture = nullptr;
@@ -272,6 +272,35 @@ namespace {
                 continue;
             }
 
+            // handle info text
+            if (line.front() == '%') {
+                // skip first character
+                string s = line;
+                s.erase(s.begin());
+
+                istringstream iss(s);
+                string infoCommand;
+                iss >> quoted(infoCommand);
+
+                if (infoCommand.empty())
+                    printErrorAndExit("cannot process line: ", line);
+
+                // create setting item
+                auto item = new SettingItem(infoCommand);
+
+                if (item->IsInitOK() == false) {
+                    printErrorAndExit(item->getErrorMessage() + ": ", line);
+                }
+
+                // add item to recent created group
+                settingGroups.back()->getItems().push_back(item);
+
+                // store last item
+                lastItem = item;
+
+                continue;
+            }
+
             // process line with string stream
             // try read line as setting item
             string id, description, options, displayValues, selectedValue;
@@ -353,26 +382,33 @@ namespace {
             file << endl;
             for (auto &item : group->getItems())
             {
-                file << quoted(item->getID()) << ' '
-                    << quoted(item->getDescription()) << ' '
-                    << quoted(item->getOptionsString()) << ' '
-                    << quoted(item->getDisplayValuesString_()) << ' ';
-                    
-                if (!item->getSourceCommandString().empty())
-                    file << quoted(item->getSourceCommandString());
-                else
-                    file << quoted(item->getSelectedValue());
+                // handle info text
+                if (item->isInfoText()) {
+                    file << '%' << quoted(item->getCommandsString()) << endl;
 
-                // if (!item->getCommandsString().empty())
-                    file << ' ' << quoted(item->getCommandsString());
+                // handle normal setting item
+                } else {
+                    file << quoted(item->getID()) << ' '
+                        << quoted(item->getDescription()) << ' '
+                        << quoted(item->getOptionsString()) << ' '
+                        << quoted(item->getDisplayValuesString_()) << ' ';
+                        
+                    if (!item->getSourceCommandString().empty())
+                        file << quoted(item->getSourceCommandString());
+                    else
+                        file << quoted(item->getSelectedValue());
 
-                // if (!item->getInfoCommandString().empty())
-                    file << ' ' << quoted(item->getInfoCommandString());
+                    // if (!item->getCommandsString().empty())
+                        file << ' ' << quoted(item->getCommandsString());
 
-                file << endl;
+                    // if (!item->getInfoCommandString().empty())
+                        file << ' ' << quoted(item->getInfoCommandString());
 
-                if (!item->getMinorText().empty())
-                    file << '@' << quoted(item->getMinorText()) << endl;
+                    file << endl;
+
+                    if (!item->getMinorText().empty())
+                        file << '@' << quoted(item->getMinorText()) << endl;
+                }
             }
         }
 
@@ -619,8 +655,8 @@ namespace {
         // render title and instruction
         if (isShowTitle) titleTexture->render(0, 10);
         if (isShowInstruction) {
-             instructionTexture->render(10, 0);
-             itemIndexTexture->render(-10, 0);
+             instructionTexture->render(5, 0);
+             itemIndexTexture->render(-5, 0);
         }
 
         // render current group name
@@ -674,44 +710,46 @@ namespace {
             // render setting description
             item->renderDescription(offsetX + marginLeft, offsetY);
 
-            // render setting value
-            if (item->isOnOffSetting())
+            // render setting value if item is not info text
+            if (item->isInfoText() == false)
             {
-                int x = offsetX + global::SCREEN_HEIGHT - marginRight;
-                x -= toggleOnTexture->getWidth();
-                int y = offsetY + (item->getHeight() - toggleOnTexture->getHeight()) / 2;
-                if (item->getSelectedIndex() == 0)
-                    toggleOnTexture->render(x, y);
-                else
-                    toggleOffTexture->render(x, y);
-            }
-            else if (item->isRunOffSetting())
-            {
-                int x = offsetX + global::SCREEN_HEIGHT - marginRight;
-                x -= runOnTexture->getWidth();
-                int y = offsetY + (item->getHeight() - runOnTexture->getHeight()) / 2;
-                if (item->getSelectedIndex() == 0)
-                    runOnTexture->render(x, y);
-                else
-                    runOffTexture->render(x, y);
-            }
-            else
-            {
-                int x = offsetX + global::SCREEN_HEIGHT - marginRight;
-                int y = offsetY + item->getValueOffsetY();
-                if (index == selectedItemIndex) {
-                    x -= nextTexture->getWidth();
-                    nextTexture->render(x, y);
-                    x -= valueSpece;
+                if (item->isOnOffSetting())
+                {
+                    int x = offsetX + global::SCREEN_HEIGHT - marginRight;
+                    x -= toggleOnTexture->getWidth();
+                    int y = offsetY + (item->getHeight() - toggleOnTexture->getHeight()) / 2;
+                    if (item->getSelectedIndex() == 0)
+                        toggleOnTexture->render(x, y);
+                    else
+                        toggleOffTexture->render(x, y);
                 }
-                x -= item->getValueTexture()->getWidth();
-                item->renderValue(x, offsetY);
-                if (index == selectedItemIndex) {
-                    x -= valueSpece + prevTexture->getWidth();
-                    prevTexture->render(x, y);
+                else if (item->isRunOffSetting())
+                {
+                    int x = offsetX + global::SCREEN_HEIGHT - marginRight;
+                    x -= runOnTexture->getWidth();
+                    int y = offsetY + (item->getHeight() - runOnTexture->getHeight()) / 2;
+                    if (item->getSelectedIndex() == 0)
+                        runOnTexture->render(x, y);
+                    else
+                        runOffTexture->render(x, y);
+                }
+                else
+                {
+                    int x = offsetX + global::SCREEN_HEIGHT - marginRight;
+                    int y = offsetY + item->getValueOffsetY();
+                    if (index == selectedItemIndex) {
+                        x -= nextTexture->getWidth();
+                        nextTexture->render(x, y);
+                        x -= valueSpece;
+                    }
+                    x -= item->getValueTexture()->getWidth();
+                    item->renderValue(x, offsetY);
+                    if (index == selectedItemIndex) {
+                        x -= valueSpece + prevTexture->getWidth();
+                        prevTexture->render(x, y);
+                    }
                 }
             }
-
             // update offset and index
             offsetY += item->getHeight();
             index++;
