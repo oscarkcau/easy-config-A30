@@ -142,10 +142,10 @@ namespace {
 			 << "-h,--help\tshow this help message." << endl
              << endl
 			 << endl
-			 << "UI control: L1/R1: Select group, Up/Down: Select item, Left/Right: change value, B: Exit" << endl
+			 << "UI control: L1/R1: Select group, Up/Down: Select item, Left/Right/A: Change value, B: Save and exit, Select: Cancel and exit" << endl
              << endl
              << "The config file should contains lines of config settings, in the following format:" << endl
-             << "\"NAME\" \"DESCRIPTION\" \"POSSIBLE_VALUES\" \"DISPLAY_VALUES\" \"CURRENT_VALUE\" [\"COMMANDS\"]" << endl
+             << "\"NAME\" \"DESCRIPTION\" \"POSSIBLE_VALUES\" \"DISPLAY_VALUES\" \"CURRENT_VALUE\" [\"COMMANDS\"] [\"UPDATE_COMMAND\"]" << endl
              << endl
              << "NAME: short name used in options file." << endl
              << "DESCRIPTION: description shown in config window." << endl
@@ -153,6 +153,7 @@ namespace {
              << "DISPLAY_VALUES: corresponding display texts of possible values shown in config window." << endl
              << "CURRENT_VALUES: current value of setting, should be one of the display values." << endl
              << "COMMANDS: optional commands to be executed on exit if the setting value is changed." << endl
+             << "UPDATE_COMMAND: optional command to be executed to update the minor text on setting value is changed." << endl
              << endl
              << "POSSIBLE_VALUES, DISPLAY_VALUES and COMMANDS are values seperated by '|'. "
              << "Example lines of config file:" << endl
@@ -160,7 +161,21 @@ namespace {
              << "\"-s\" \"Text scrolling speed\" \"10|20|30\" \"Slow|Normal|Fast\" \"Fast\"" << endl
              << "\"-t\" \"Display title at start\" \"on|off\" \"on|off\" \"on\"" << endl
              << endl
-             << "settings can be organized into groups, which displayed as multiple tags in config window. "
+             << "Minor text can be added to a setting item to show additional information to user. "
+             << "To define a minor text insert line after a setting item with the following format:" << endl
+             << endl
+             << "@\"This is minor text\"" << endl
+             << endl
+             << "If UPDATE_COMMAND exists, it will be executed when the corresponding setting value is changed by user "
+             << "with the 0-based index of the new setting value. The command should print new information to stdout to update the minor text." << endl
+             << endl
+             << "Dynamic information text can be added as single item, which should be a command to be executed on start. "
+             << "The command should print output to stdout to set the information text. "
+             << "To define an information text add a line with the following format" <<endl
+             << endl
+             << "%\"the_commond_to_run_on_start.sh\"" << endl
+             << endl
+             << "Setting items can be organized into groups, which displayed as multiple tags in config window. "
              << "To define a group use insert line with the following format:" << endl
              << endl
              << "[GROUP_NAME] [OPTIONAL_OUTPUT_FILENAME]" << endl
